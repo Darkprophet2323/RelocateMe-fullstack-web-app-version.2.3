@@ -1933,12 +1933,436 @@ const AnalyticsPage = () => {
   );
 };
 
-const ProgressPage = () => (
-  <div className="min-h-screen bg-gray-50 p-8">
-    <h1 className="text-3xl font-bold mb-4">Progress Tracking</h1>
-    <p>Progress tracking page - coming soon with detailed analytics!</p>
-  </div>
-);
+const ProgressPage = () => {
+  const [progressData, setProgressData] = useState(null);
+  const [progressItems, setProgressItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [loadingProgress, setLoadingProgress] = useState(true);
+  const [updatingItem, setUpdatingItem] = useState(null);
+
+  useEffect(() => {
+    fetchProgressData();
+  }, []);
+
+  useEffect(() => {
+    filterItems();
+  }, [progressItems, selectedCategory, selectedStatus]);
+
+  const fetchProgressData = async () => {
+    try {
+      const [dashboardRes, itemsRes] = await Promise.all([
+        axios.get(`${API}/progress/dashboard`),
+        axios.get(`${API}/progress/items`)
+      ]);
+      setProgressData(dashboardRes.data);
+      setProgressItems(itemsRes.data.items);
+    } catch (error) {
+      console.error("Error fetching progress data:", error);
+    } finally {
+      setLoadingProgress(false);
+    }
+  };
+
+  const filterItems = () => {
+    let filtered = progressItems;
+    
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+    
+    if (selectedStatus !== "all") {
+      filtered = filtered.filter(item => item.status === selectedStatus);
+    }
+    
+    setFilteredItems(filtered);
+  };
+
+  const updateItemStatus = async (itemId, newStatus) => {
+    setUpdatingItem(itemId);
+    try {
+      await axios.put(`${API}/progress/items/${itemId}`, { status: newStatus });
+      
+      // Update local state
+      setProgressItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, status: newStatus } : item
+        )
+      );
+      
+      // Refresh dashboard data
+      const dashboardRes = await axios.get(`${API}/progress/dashboard`);
+      setProgressData(dashboardRes.data);
+    } catch (error) {
+      console.error("Error updating item status:", error);
+    } finally {
+      setUpdatingItem(null);
+    }
+  };
+
+  const updateItemNotes = async (itemId, notes) => {
+    try {
+      await axios.put(`${API}/progress/items/${itemId}`, { notes });
+      
+      // Update local state
+      setProgressItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, notes } : item
+        )
+      );
+    } catch (error) {
+      console.error("Error updating item notes:", error);
+    }
+  };
+
+  const toggleSubtask = async (itemId, subtaskIndex) => {
+    try {
+      const response = await axios.post(`${API}/progress/items/${itemId}/subtask?subtask_index=${subtaskIndex}`);
+      
+      // Update local state
+      setProgressItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, subtasks: response.data.subtasks } : item
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling subtask:", error);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "completed": return "bg-green-100 text-green-800 border-green-500";
+      case "in_progress": return "bg-blue-100 text-blue-800 border-blue-500";
+      case "blocked": return "bg-red-100 text-red-800 border-red-500";
+      default: return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case "urgent": return "bg-red-500";
+      case "high": return "bg-orange-500";
+      case "medium": return "bg-yellow-500";
+      case "low": return "bg-green-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const ProgressItemCard = ({ item }) => {
+    const [showNotes, setShowNotes] = useState(false);
+    const [editingNotes, setEditingNotes] = useState(false);
+    const [notesText, setNotesText] = useState(item.notes || "");
+
+    const handleNotesSubmit = () => {
+      updateItemNotes(item.id, notesText);
+      setEditingNotes(false);
+    };
+
+    const formatDate = (dateString) => {
+      if (!dateString) return "No due date";
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    };
+
+    const completedSubtasks = item.subtasks?.filter(st => st.completed).length || 0;
+    const totalSubtasks = item.subtasks?.length || 0;
+
+    return (
+      <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${getStatusColor(item.status)} transition-all duration-300 hover:shadow-xl`}>
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 mr-3">{item.title}</h3>
+              <div className={`w-3 h-3 rounded-full ${getPriorityColor(item.priority)} mr-2`}></div>
+              <span className="text-xs text-gray-500 capitalize">{item.priority}</span>
+            </div>
+            <p className="text-gray-600 text-sm mb-3">{item.description}</p>
+            <div className="flex items-center text-sm text-gray-500 mb-3">
+              <span className="mr-4">📅 Due: {formatDate(item.due_date)}</span>
+              <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                {item.category}
+              </span>
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-end space-y-2">
+            <select
+              value={item.status}
+              onChange={(e) => updateItemStatus(item.id, e.target.value)}
+              disabled={updatingItem === item.id}
+              className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="not_started">Not Started</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="blocked">Blocked</option>
+            </select>
+            
+            {updatingItem === item.id && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            )}
+          </div>
+        </div>
+
+        {/* Subtasks */}
+        {item.subtasks && item.subtasks.length > 0 && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="text-sm font-medium text-gray-700">
+                Subtasks ({completedSubtasks}/{totalSubtasks})
+              </h4>
+              <div className="w-24 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {item.subtasks.map((subtask, index) => (
+                <label key={index} className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={subtask.completed}
+                    onChange={() => toggleSubtask(item.id, index)}
+                    className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className={`text-sm ${subtask.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                    {subtask.task}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Notes Section */}
+        <div className="border-t pt-4">
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="text-sm font-medium text-gray-700">Notes</h4>
+            <button
+              onClick={() => setShowNotes(!showNotes)}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              {showNotes ? "Hide" : "Show"}
+            </button>
+          </div>
+          
+          {showNotes && (
+            <div className="mt-2">
+              {editingNotes ? (
+                <div>
+                  <textarea
+                    value={notesText}
+                    onChange={(e) => setNotesText(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows="3"
+                    placeholder="Add your notes here..."
+                  />
+                  <div className="flex justify-end space-x-2 mt-2">
+                    <button
+                      onClick={() => setEditingNotes(false)}
+                      className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleNotesSubmit}
+                      className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {item.notes || "No notes added yet."}
+                  </p>
+                  <button
+                    onClick={() => setEditingNotes(true)}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Edit Notes
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  if (loadingProgress) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading progress data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const categories = progressItems.length > 0 ? [...new Set(progressItems.map(item => item.category))] : [];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div 
+        className="relative bg-cover bg-center h-48 flex items-center justify-center text-white"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.pexels.com/photos/7948029/pexels-photo-7948029.jpeg')"
+        }}
+      >
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2">Progress Tracking</h1>
+          <p className="text-lg">Monitor and manage your relocation journey</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Dashboard Overview */}
+        {progressData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Items</p>
+                  <p className="text-2xl font-bold text-gray-900">{progressData.overview.total_items}</p>
+                  <p className="text-sm text-blue-600 mt-1">All tasks</p>
+                </div>
+                <div className="text-3xl">📋</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Completed</p>
+                  <p className="text-2xl font-bold text-gray-900">{progressData.overview.completed_items}</p>
+                  <p className="text-sm text-green-600 mt-1">
+                    {progressData.overview.overall_completion.toFixed(1)}% done
+                  </p>
+                </div>
+                <div className="text-3xl">✅</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">In Progress</p>
+                  <p className="text-2xl font-bold text-gray-900">{progressData.overview.in_progress_items}</p>
+                  <p className="text-sm text-yellow-600 mt-1">Active tasks</p>
+                </div>
+                <div className="text-3xl">🔄</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Overdue</p>
+                  <p className="text-2xl font-bold text-gray-900">{progressData.overview.overdue_items}</p>
+                  <p className="text-sm text-red-600 mt-1">Need attention</p>
+                </div>
+                <div className="text-3xl">⚠️</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
+              Progress Items ({filteredItems.length})
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Statuses</option>
+                <option value="not_started">Not Started</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Items */}
+        <div className="grid gap-6">
+          {filteredItems.map((item, index) => (
+            <ProgressItemCard key={item.id || index} item={item} />
+          ))}
+        </div>
+
+        {filteredItems.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No items found matching your criteria.</p>
+          </div>
+        )}
+
+        {/* Category Breakdown */}
+        {progressData && (
+          <div className="mt-12 bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Progress by Category</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(progressData.category_breakdown).map(([category, stats], index) => {
+                const colors = [
+                  "from-blue-500 to-blue-600",
+                  "from-green-500 to-green-600", 
+                  "from-purple-500 to-purple-600",
+                  "from-red-500 to-red-600",
+                  "from-yellow-500 to-yellow-600",
+                  "from-indigo-500 to-indigo-600"
+                ];
+                
+                return (
+                  <div key={category} className={`bg-gradient-to-br ${colors[index % colors.length]} text-white p-6 rounded-xl shadow-lg`}>
+                    <h3 className="text-lg font-bold mb-4">{category}</h3>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>{stats.completed}/{stats.total} completed</span>
+                        <span>{stats.completion_percentage.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-white bg-opacity-30 rounded-full h-2">
+                        <div
+                          className="bg-white h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${stats.completion_percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <p className="text-sm opacity-90">
+                      {stats.in_progress} in progress
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
 // Main App component
 function App() {
