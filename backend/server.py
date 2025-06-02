@@ -15,6 +15,7 @@ import hashlib
 import requests
 import asyncio
 from passlib.context import CryptContext
+import json
 
 
 ROOT_DIR = Path(__file__).parent
@@ -85,6 +86,273 @@ class PasswordResetComplete(BaseModel):
     username: str
     new_password: str
     reset_code: str
+
+class JobListing(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    company: str
+    location: str
+    salary: Optional[str] = None
+    description: str
+    requirements: List[str]
+    benefits: List[str]
+    job_type: str  # "full-time", "part-time", "contract", "remote"
+    posted_date: datetime
+    application_url: str
+    category: str
+
+class VisaRequirement(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    visa_type: str
+    title: str
+    description: str
+    required_documents: List[str]
+    processing_time: str
+    fee: str
+    eligibility: List[str]
+    application_process: List[str]
+
+# Sample job listings data
+SAMPLE_JOBS = [
+    {
+        "title": "Tourism Marketing Manager",
+        "company": "Peak District National Park Authority",
+        "location": "Bakewell, Peak District",
+        "salary": "£28,000 - £35,000",
+        "description": "Lead marketing campaigns to promote Peak District tourism, develop digital content, and coordinate with local businesses.",
+        "requirements": ["Marketing degree or equivalent experience", "Digital marketing skills", "Experience with social media platforms", "Excellent communication skills"],
+        "benefits": ["Pension scheme", "Flexible working", "Training opportunities", "Beautiful work environment"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=3),
+        "application_url": "https://www.peakdistrict.gov.uk/careers",
+        "category": "Marketing & Tourism"
+    },
+    {
+        "title": "Outdoor Activity Instructor",
+        "company": "PGL Adventure Holidays",
+        "location": "Castleton, Peak District",
+        "salary": "£22,000 - £26,000",
+        "description": "Lead outdoor activities including rock climbing, caving, and hiking for groups of all ages. Safety-focused role in stunning natural environment.",
+        "requirements": ["Outdoor activity qualifications", "First aid certification", "Experience working with groups", "Physical fitness"],
+        "benefits": ["Equipment provided", "Training courses", "Accommodation available", "Season bonuses"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=1),
+        "application_url": "https://www.pgl.co.uk/careers",
+        "category": "Outdoor Recreation"
+    },
+    {
+        "title": "Software Developer (Remote)",
+        "company": "Peak Tech Solutions",
+        "location": "Remote (UK)",
+        "salary": "£45,000 - £65,000",
+        "description": "Full-stack developer working on web applications for tourism and outdoor activity businesses. React, Node.js, and cloud technologies.",
+        "requirements": ["3+ years JavaScript experience", "React and Node.js proficiency", "Git version control", "Agile development experience"],
+        "benefits": ["Remote working", "Flexible hours", "Professional development budget", "Company equipment"],
+        "job_type": "remote",
+        "posted_date": datetime.now() - timedelta(days=2),
+        "application_url": "https://www.peaktech.co.uk/jobs",
+        "category": "Technology"
+    },
+    {
+        "title": "Farm Manager",
+        "company": "Derbyshire Organic Farms",
+        "location": "Matlock, Peak District",
+        "salary": "£30,000 - £40,000",
+        "description": "Manage daily operations of organic farm, oversee livestock, coordinate with local markets, and maintain sustainable farming practices.",
+        "requirements": ["Agricultural qualification or experience", "Knowledge of organic farming", "Management experience", "Valid driving license"],
+        "benefits": ["Farm accommodation", "Produce allowance", "Vehicle provided", "Rural lifestyle"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=5),
+        "application_url": "https://www.organicfarms-derbyshire.co.uk",
+        "category": "Agriculture"
+    },
+    {
+        "title": "Hotel Manager",
+        "company": "Peak District Country House",
+        "location": "Buxton, Peak District",
+        "salary": "£32,000 - £42,000",
+        "description": "Oversee hotel operations, manage staff, ensure guest satisfaction, and coordinate events in a luxury country house setting.",
+        "requirements": ["Hospitality management experience", "Leadership skills", "Customer service excellence", "Budget management"],
+        "benefits": ["Performance bonuses", "Staff accommodation", "Training programs", "Career progression"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=4),
+        "application_url": "https://www.peakdistricthotels.co.uk/careers",
+        "category": "Hospitality"
+    },
+    {
+        "title": "Park Ranger",
+        "company": "National Trust",
+        "location": "Kinder Scout, Peak District",
+        "salary": "£24,000 - £28,000",
+        "description": "Protect and maintain national park areas, educate visitors, conduct wildlife surveys, and assist with conservation projects.",
+        "requirements": ["Environmental science background", "Outdoor experience", "Communication skills", "Physical fitness"],
+        "benefits": ["National Trust membership", "Training opportunities", "Pension scheme", "Outdoor work environment"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=6),
+        "application_url": "https://www.nationaltrust.org.uk/careers",
+        "category": "Conservation"
+    },
+    {
+        "title": "Freelance Content Writer",
+        "company": "Various Local Businesses",
+        "location": "Peak District (Remote/Flexible)",
+        "salary": "£25 - £45 per hour",
+        "description": "Create content for local tourism websites, blogs, and marketing materials. Focus on outdoor activities and Peak District attractions.",
+        "requirements": ["Excellent writing skills", "SEO knowledge", "Research abilities", "Portfolio of work"],
+        "benefits": ["Flexible schedule", "Work from home", "Variety of projects", "Networking opportunities"],
+        "job_type": "freelance",
+        "posted_date": datetime.now() - timedelta(days=7),
+        "application_url": "https://www.freelancer.co.uk",
+        "category": "Writing & Content"
+    },
+    {
+        "title": "Digital Marketing Specialist",
+        "company": "Peak Adventure Tours",
+        "location": "Hathersage, Peak District",
+        "salary": "£26,000 - £34,000",
+        "description": "Develop digital marketing strategies for adventure tourism company, manage social media, and analyze campaign performance.",
+        "requirements": ["Digital marketing qualification", "Social media expertise", "Analytics tools proficiency", "Creative mindset"],
+        "benefits": ["Free adventure activities", "Flexible working", "Professional development", "Team building events"],
+        "job_type": "full-time",
+        "posted_date": datetime.now() - timedelta(days=8),
+        "application_url": "https://www.peakadventuretours.co.uk/jobs",
+        "category": "Digital Marketing"
+    }
+]
+
+# Visa requirements data
+VISA_REQUIREMENTS = [
+    {
+        "visa_type": "Skilled Worker Visa",
+        "title": "Most Common Route for Professionals",
+        "description": "For people who have been offered a skilled job in the UK by an approved employer. This is the main route for most people moving from the US to the UK for work.",
+        "required_documents": [
+            "Valid passport or travel document",
+            "Certificate of sponsorship from employer",
+            "Proof of English language ability",
+            "Tuberculosis test results (if applicable)",
+            "Police certificate from countries lived in",
+            "Financial evidence (£1,270 if employer covers maintenance)",
+            "Academic qualifications",
+            "Previous salary evidence"
+        ],
+        "processing_time": "3 weeks to 8 weeks",
+        "fee": "£719 - £1,423 depending on circumstances",
+        "eligibility": [
+            "Job offer from UK employer with sponsor license",
+            "Job must be at appropriate skill level (RQF Level 3+)",
+            "Salary must meet minimum threshold (usually £38,700+)",
+            "English language requirement (B1 level)",
+            "Genuine intention to work in sponsored role"
+        ],
+        "application_process": [
+            "Secure job offer from licensed sponsor",
+            "Receive Certificate of Sponsorship",
+            "Complete online application",
+            "Book and attend biometric appointment",
+            "Submit supporting documents",
+            "Wait for decision",
+            "Collect biometric residence permit in UK"
+        ]
+    },
+    {
+        "visa_type": "Spouse/Family Visa",
+        "title": "For Family Members of UK Citizens/Residents",
+        "description": "If you're married to, in a civil partnership with, or in a long-term relationship with a UK citizen or someone with settled status in the UK.",
+        "required_documents": [
+            "Valid passport",
+            "Marriage certificate or proof of relationship",
+            "Financial requirement evidence (£18,600+ annual income)",
+            "English language test certificate",
+            "Accommodation evidence",
+            "Tuberculosis test (if applicable)",
+            "Police certificates",
+            "Relationship evidence (photos, communication records)"
+        ],
+        "processing_time": "2 months (outside UK)",
+        "fee": "£1,846 for 2.5 years",
+        "eligibility": [
+            "Married to or in civil partnership with UK citizen/settled person",
+            "Relationship must be genuine and subsisting",
+            "Financial requirement must be met",
+            "Adequate accommodation without public funds",
+            "English language requirement (A1 initially, A2 for extension)"
+        ],
+        "application_process": [
+            "Check eligibility requirements",
+            "Gather relationship and financial evidence",
+            "Take English language test",
+            "Complete online application",
+            "Book biometric appointment",
+            "Submit documents and attend interview if required",
+            "Wait for decision"
+        ]
+    },
+    {
+        "visa_type": "Visitor Visa",
+        "title": "For Short-term Visits and House Hunting",
+        "description": "For tourism, visiting family/friends, or business visits up to 6 months. Good for initial house hunting trips.",
+        "required_documents": [
+            "Valid passport",
+            "Bank statements (3-6 months)",
+            "Employment letter",
+            "Travel itinerary",
+            "Accommodation bookings",
+            "Return flight tickets",
+            "Travel insurance",
+            "Invitation letter (if visiting family/friends)"
+        ],
+        "processing_time": "3 weeks",
+        "fee": "£100 for 6 months",
+        "eligibility": [
+            "Genuine intention to visit temporarily",
+            "Sufficient funds for trip",
+            "Intention to leave at end of visit",
+            "No intention to work (except business activities)",
+            "Good immigration history"
+        ],
+        "application_process": [
+            "Complete online application",
+            "Pay application fee",
+            "Book biometric appointment",
+            "Attend appointment with documents",
+            "Wait for decision",
+            "Collect passport with visa"
+        ]
+    },
+    {
+        "visa_type": "Student Visa",
+        "title": "For Educational Purposes",
+        "description": "If you want to study at a UK university or college, this could also be a pathway to eventual settlement.",
+        "required_documents": [
+            "Valid passport",
+            "Confirmation of Acceptance for Studies (CAS)",
+            "Financial evidence",
+            "English language certificate",
+            "Academic qualifications",
+            "Tuberculosis test (if applicable)",
+            "Parental consent (if under 18)"
+        ],
+        "processing_time": "3 weeks",
+        "fee": "£348 - £490",
+        "eligibility": [
+            "Offer from licensed student sponsor",
+            "Financial requirements met",
+            "English language proficiency",
+            "Genuine student intention",
+            "Academic progression requirement"
+        ],
+        "application_process": [
+            "Receive offer from UK institution",
+            "Get CAS number",
+            "Prove financial requirements",
+            "Take English test if required",
+            "Apply online",
+            "Attend biometric appointment",
+            "Wait for decision"
+        ]
+    }
+]
 
 # Comprehensive relocation timeline data
 RELOCATION_TIMELINE = [
@@ -261,6 +529,84 @@ async def login(user_credentials: UserLogin):
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
+# Job listings endpoints
+@api_router.get("/jobs/listings")
+async def get_job_listings(category: Optional[str] = None, job_type: Optional[str] = None):
+    jobs = []
+    for job_data in SAMPLE_JOBS:
+        job = JobListing(**job_data)
+        if category and job.category != category:
+            continue
+        if job_type and job.job_type != job_type:
+            continue
+        jobs.append(job.dict())
+    
+    return {
+        "jobs": jobs,
+        "total": len(jobs),
+        "categories": list(set([job["category"] for job in [JobListing(**j).dict() for j in SAMPLE_JOBS]])),
+        "job_types": list(set([job["job_type"] for job in [JobListing(**j).dict() for j in SAMPLE_JOBS]]))
+    }
+
+@api_router.get("/jobs/featured")
+async def get_featured_jobs():
+    # Return top 3 most recent jobs
+    featured = sorted(SAMPLE_JOBS, key=lambda x: x["posted_date"], reverse=True)[:3]
+    return {"featured_jobs": [JobListing(**job).dict() for job in featured]}
+
+@api_router.get("/jobs/categories")
+async def get_job_categories():
+    categories = {}
+    for job_data in SAMPLE_JOBS:
+        job = JobListing(**job_data)
+        if job.category not in categories:
+            categories[job.category] = []
+        categories[job.category].append(job.dict())
+    
+    return categories
+
+# Visa requirements endpoints
+@api_router.get("/visa/requirements")
+async def get_visa_requirements():
+    return {"visa_types": [VisaRequirement(**req).dict() for req in VISA_REQUIREMENTS]}
+
+@api_router.get("/visa/requirements/{visa_type}")
+async def get_visa_requirement_details(visa_type: str):
+    for req in VISA_REQUIREMENTS:
+        if req["visa_type"].lower().replace(" ", "-") == visa_type.lower():
+            return VisaRequirement(**req).dict()
+    raise HTTPException(status_code=404, detail="Visa type not found")
+
+@api_router.get("/visa/checklist")
+async def get_visa_checklist():
+    return {
+        "general_documents": [
+            "Valid passport (6+ months remaining)",
+            "Passport-style photographs",
+            "Completed visa application form",
+            "Visa application fee payment",
+            "Biometric information"
+        ],
+        "financial_documents": [
+            "Bank statements (6 months)",
+            "Salary slips or employment letter",
+            "Tax returns",
+            "Sponsor financial documents (if applicable)"
+        ],
+        "identity_documents": [
+            "Birth certificate",
+            "Marriage certificate (if applicable)",
+            "Previous passports",
+            "Police clearance certificate"
+        ],
+        "supporting_documents": [
+            "TB test results (if required)",
+            "English language test certificate",
+            "Academic qualifications",
+            "Employment contracts or job offers"
+        ]
+    }
+
 # Timeline and Progress endpoints
 @api_router.get("/timeline/full")
 async def get_full_timeline(current_user: User = Depends(get_current_user)):
@@ -375,7 +721,8 @@ async def get_all_resources():
         "visa_legal": [
             {"name": "UK Government Visa Guide", "url": "https://www.gov.uk/browse/visas-immigration", "description": "Official UK visa information"},
             {"name": "Immigration Lawyer Directory", "url": "https://www.lawsociety.org.uk", "description": "Find qualified immigration lawyers"},
-            {"name": "Document Apostille Services", "url": "https://www.gov.uk/get-document-legalised", "description": "Document legalization services"}
+            {"name": "Document Apostille Services", "url": "https://www.gov.uk/get-document-legalised", "description": "Document legalization services"},
+            {"name": "Visa Application Centre", "url": "https://www.vfsglobal.co.uk", "description": "UK visa application centres"}
         ],
         "housing": [
             {"name": "Rightmove", "url": "https://www.rightmove.co.uk", "description": "UK's largest property portal"},
