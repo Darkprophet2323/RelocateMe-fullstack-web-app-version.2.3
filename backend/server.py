@@ -917,6 +917,196 @@ async def get_all_resources():
         ]
     }
 
+# Logistics endpoints
+@api_router.get("/logistics/providers")
+async def get_logistics_providers(service_type: Optional[str] = None):
+    providers = []
+    for provider_data in LOGISTICS_PROVIDERS:
+        provider = LogisticsProvider(**provider_data)
+        if service_type and provider.service_type != service_type:
+            continue
+        providers.append(provider.dict())
+    
+    return {
+        "providers": providers,
+        "total": len(providers),
+        "service_types": list(set([p["service_type"] for p in LOGISTICS_PROVIDERS]))
+    }
+
+@api_router.get("/logistics/cost-calculator")
+async def get_cost_calculator():
+    return {
+        "base_costs": {
+            "full_service": {"min": 8000, "max": 15000, "average": 11500},
+            "container": {"min": 2800, "max": 7500, "average": 5150},
+            "air_freight": {"min": 2000, "max": 8000, "average": 5000},
+            "storage": {"min": 150, "max": 400, "average": 275}
+        },
+        "additional_costs": {
+            "insurance": {"percentage": 2.5, "description": "2.5% of shipment value"},
+            "customs_duty": {"range": "0-25%", "description": "Varies by item type"},
+            "temporary_storage": {"cost": 50, "unit": "per cubic meter per week"},
+            "express_customs": {"cost": 200, "description": "Fast-track customs clearance"},
+            "pet_shipping": {"cost": 2500, "description": "Per pet including quarantine"},
+            "vehicle_shipping": {"cost": 3500, "description": "Car shipping via container"}
+        },
+        "cost_factors": [
+            "Volume of household goods",
+            "Distance and accessibility",
+            "Service level selected",
+            "Insurance coverage",
+            "Seasonal demand",
+            "Customs complexity"
+        ]
+    }
+
+@api_router.get("/logistics/checklist")
+async def get_moving_checklist():
+    return {
+        "8_weeks_before": [
+            "Research and get quotes from moving companies",
+            "Start decluttering and deciding what to ship",
+            "Research UK customs regulations",
+            "Begin inventory of valuable items",
+            "Research temporary accommodation in UK"
+        ],
+        "6_weeks_before": [
+            "Book moving company and confirm dates",
+            "Arrange temporary storage if needed",
+            "Start using up frozen/perishable food",
+            "Research UK utility providers",
+            "Plan farewell events with friends/family"
+        ],
+        "4_weeks_before": [
+            "Confirm shipping dates and logistics",
+            "Start serious packing of non-essentials",
+            "Arrange mail forwarding with USPS",
+            "Notify current utility companies of move",
+            "Research UK mobile phone providers"
+        ],
+        "2_weeks_before": [
+            "Finish packing all non-essential items",
+            "Confirm travel arrangements to UK",
+            "Pack essential suitcase for first weeks",
+            "Say goodbye to local services (dentist, etc.)",
+            "Download offline maps and UK apps"
+        ],
+        "1_week_before": [
+            "Pack survival kit for first days in UK",
+            "Confirm pickup time with movers",
+            "Clean out refrigerator completely",
+            "Pack important documents separately",
+            "Charge all electronic devices"
+        ],
+        "moving_day": [
+            "Be present for pickup",
+            "Take photos of valuable items",
+            "Keep inventory list with you",
+            "Check all rooms are empty",
+            "Get contact details for UK delivery"
+        ]
+    }
+
+# Analytics endpoints
+@api_router.get("/analytics/overview")
+async def get_analytics_overview(current_user: User = Depends(get_current_user)):
+    user_completed_steps = current_user.completed_steps
+    total_steps = len(RELOCATION_TIMELINE)
+    completion_percentage = (len(user_completed_steps) / total_steps) * 100
+    
+    # Calculate category progress
+    category_progress = {}
+    for step in RELOCATION_TIMELINE:
+        category = step["category"]
+        if category not in category_progress:
+            category_progress[category] = {"completed": 0, "total": 0}
+        category_progress[category]["total"] += 1
+        if step["id"] in user_completed_steps:
+            category_progress[category]["completed"] += 1
+    
+    # Calculate estimated costs based on progress
+    estimated_costs = {
+        "visa_fees": 1200,
+        "moving_costs": 8500,
+        "initial_housing": 3000,
+        "travel_costs": 1500,
+        "documentation": 500,
+        "miscellaneous": 2000
+    }
+    
+    return {
+        "user_progress": {
+            "overall_completion": completion_percentage,
+            "completed_steps": len(user_completed_steps),
+            "total_steps": total_steps,
+            "current_phase": get_current_phase(user_completed_steps),
+            "category_breakdown": category_progress
+        },
+        "cost_breakdown": estimated_costs,
+        "timeline_insights": {
+            "days_active": 45,
+            "avg_steps_per_week": 1.2,
+            "projected_completion": "4 months",
+            "on_track": completion_percentage > 12  # Expected 15% after 45 days
+        },
+        "popular_resources": [
+            {"name": "UK Government Visa Guide", "clicks": 234, "category": "Visa"},
+            {"name": "Rightmove Property Search", "clicks": 189, "category": "Housing"},
+            {"name": "Indeed UK Jobs", "clicks": 156, "category": "Employment"},
+            {"name": "Wise Money Transfer", "clicks": 98, "category": "Financial"}
+        ],
+        "upcoming_deadlines": [
+            {"task": "Visa Application Deadline", "days_left": 45},
+            {"task": "Job Application Target", "days_left": 62},
+            {"task": "Housing Search Start", "days_left": 78},
+            {"task": "Moving Company Booking", "days_left": 95}
+        ]
+    }
+
+@api_router.get("/analytics/progress-history")
+async def get_progress_history(current_user: User = Depends(get_current_user)):
+    # Simulate progress history over time
+    progress_history = [
+        {"date": "2024-11-01", "completed_steps": 2, "completion_percentage": 5.9},
+        {"date": "2024-11-15", "completed_steps": 3, "completion_percentage": 8.8},
+        {"date": "2024-12-01", "completed_steps": 5, "completion_percentage": 14.7},
+        {"date": "2024-12-15", "completed_steps": 5, "completion_percentage": 14.7},
+        {"date": "2025-01-01", "completed_steps": 5, "completion_percentage": 14.7}
+    ]
+    
+    return {
+        "progress_history": progress_history,
+        "milestones": [
+            {"date": "2024-11-01", "milestone": "Started relocation planning"},
+            {"date": "2024-12-01", "milestone": "Completed initial research phase"},
+            {"date": "2025-01-01", "milestone": "Current status"}
+        ]
+    }
+
+@api_router.get("/analytics/cost-tracking")
+async def get_cost_tracking(current_user: User = Depends(get_current_user)):
+    return {
+        "budget_overview": {
+            "total_budget": 45000,
+            "spent_to_date": 1200,
+            "committed": 8500,
+            "remaining": 35300
+        },
+        "cost_categories": {
+            "visa_and_legal": {"budgeted": 2000, "spent": 1200, "remaining": 800},
+            "moving_and_shipping": {"budgeted": 12000, "spent": 0, "remaining": 12000},
+            "housing_deposits": {"budgeted": 8000, "spent": 0, "remaining": 8000},
+            "travel_costs": {"budgeted": 3000, "spent": 0, "remaining": 3000},
+            "initial_living": {"budgeted": 15000, "spent": 0, "remaining": 15000},
+            "emergency_fund": {"budgeted": 5000, "spent": 0, "remaining": 5000}
+        },
+        "spending_timeline": [
+            {"month": "Nov 2024", "amount": 500, "category": "Documentation"},
+            {"month": "Dec 2024", "amount": 700, "category": "Visa fees"},
+            {"month": "Jan 2025", "amount": 0, "category": "Planning"}
+        ]
+    }
+
 # Original endpoints (keeping for compatibility)
 @api_router.get("/locations/phoenix")
 async def get_phoenix_data():
