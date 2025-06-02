@@ -1120,6 +1120,215 @@ async def get_all_resources():
         ]
     }
 
+# Progress tracking endpoints
+@api_router.get("/progress/items")
+async def get_progress_items(current_user: User = Depends(get_current_user), category: Optional[str] = None, status: Optional[str] = None):
+    # Initialize progress items for user if they don't exist
+    existing_items = await db.progress_items.find({"user_id": current_user.id}).to_list(length=None)
+    
+    if not existing_items:
+        # Create initial progress items for user
+        initial_items = []
+        for item_data in SAMPLE_PROGRESS_ITEMS:
+            item = ProgressItem(user_id=current_user.id, **item_data)
+            initial_items.append(item.dict())
+        
+        if initial_items:
+            await db.progress_items.insert_many(initial_items)
+            existing_items = initial_items
+    
+    # Filter by category and status if provided
+    filtered_items = existing_items
+    if category:
+        filtered_items = [item for item in filtered_items if item.get("category") == category]
+    if status:
+        filtered_items = [item for item in filtered_items if item.get("status") == status]
+    
+    # Calculate statistics
+    total_items = len(existing_items)
+    completed_items = len([item for item in existing_items if item.get("status") == "completed"])
+    in_progress_items = len([item for item in existing_items if item.get("status") == "in_progress"])
+    
+    return {
+        "items": filtered_items,
+        "statistics": {
+            "total": total_items,
+            "completed": completed_items,
+            "in_progress": in_progress_items,
+            "completion_percentage": (completed_items / total_items * 100) if total_items > 0 else 0
+        },
+        "categories": list(set([item.get("category") for item in existing_items])),
+        "statuses": ["not_started", "in_progress", "completed", "blocked"]
+    }
+
+@api_router.put("/progress/items/{item_id}")
+async def update_progress_item(item_id: str, update_data: ProgressUpdate, current_user: User = Depends(get_current_user)):
+    # Find the item
+    existing_item = await db.progress_items.find_one({"id": item_id, "user_id": current_user.id})
+    if not existing_item:
+        raise HTTPException(status_code=404, detail="Progress item not found")
+    
+    # Update fields
+    update_fields = {"updated_at": datetime.utcnow()}
+    
+    if update_data.status is not None:
+        update_fields["status"] = update_data.status
+        if update_data.status == "completed":
+            update_fields["completed_date"] = datetime.utcnow()
+        elif existing_item.get("status") == "completed" and update_data.status != "completed":
+            update_fields["completed_date"] = None
+    
+    if update_data.notes is not None:
+        update_fields["notes"] = update_data.notes
+    
+    if update_data.priority is not None:
+        update_fields["priority"] = update_data.priority
+    
+    if update_data.due_date is not None:
+        update_fields["due_date"] = update_data.due_date
+    
+    # Update in database
+    await db.progress_items.update_one(
+        {"id": item_id, "user_id": current_user.id},
+        {"$set": update_fields}
+    )
+    
+    return {"message": "Progress item updated successfully", "updated_fields": update_fields}
+
+@api_router.post("/progress/items/{item_id}/subtask")
+async def toggle_subtask(item_id: str, subtask_index: int, current_user: User = Depends(get_current_user)):
+    # Find the item
+    existing_item = await db.progress_items.find_one({"id": item_id, "user_id": current_user.id})
+    if not existing_item:
+        raise HTTPException(status_code=404, detail="Progress item not found")
+    
+    subtasks = existing_item.get("subtasks", [])
+    if subtask_index >= len(subtasks):
+        raise HTTPException(status_code=400, detail="Invalid subtask index")
+    
+    # Toggle subtask completion
+    subtasks[subtask_index]["completed"] = not subtasks[subtask_index]["completed"]
+    
+    # Update in database
+    await db.progress_items.update_one(
+        {"id": item_id, "user_id": current_user.id},
+        {"$set": {"subtasks": subtasks, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Subtask updated successfully", "subtasks": subtasks}
+
+@api_router.post("/progress/items")
+async def create_progress_item(item_data: Dict[str, Any], current_user: User = Depends(get_current_user)):
+    new_item = ProgressItem(
+        user_id=current_user.id,
+        category=item_data.get("category", "General"),
+        title=item_data["title"],
+        description=item_data.get("description", ""),
+        status=item_data.get("status", "not_started"),
+        priority=item_data.get("priority", "medium"),
+        due_date=item_data.get("due_date"),
+        notes=item_data.get("notes", "")
+    )
+    
+    # Insert into database
+    await db.progress_items.insert_one(new_item.dict())
+    
+    return {"message": "Progress item created successfully", "item": new_item.dict()}
+
+@api_router.delete("/progress/items/{item_id}")
+async def delete_progress_item(item_id: str, current_user: User = Depends(get_current_user)):
+    result = await db.progress_items.delete_one({"id": item_id, "user_id": current_user.id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Progress item not found")
+    
+    return {"message": "Progress item deleted successfully"}
+
+@api_router.get("/progress/dashboard")
+async def get_progress_dashboard(current_user: User = Depends(get_current_user)):
+    # Get all progress items for user
+    items = await db.progress_items.find({"user_id": current_user.id}).to_list(length=None)
+    
+    if not items:
+        # Initialize with sample data if no items exist
+        initial_items = []
+        for item_data in SAMPLE_PROGRESS_ITEMS:
+            item = ProgressItem(user_id=current_user.id, **item_data)
+            initial_items.append(item.dict())
+        
+        if initial_items:
+            await db.progress_items.insert_many(initial_items)
+            items = initial_items
+    
+    # Calculate statistics by category
+    category_stats = {}
+    priority_stats = {"high": 0, "medium": 0, "low": 0, "urgent": 0}
+    status_stats = {"not_started": 0, "in_progress": 0, "completed": 0, "blocked": 0}
+    
+    for item in items:
+        category = item.get("category", "General")
+        if category not in category_stats:
+            category_stats[category] = {"total": 0, "completed": 0, "in_progress": 0}
+        
+        category_stats[category]["total"] += 1
+        
+        status = item.get("status", "not_started")
+        status_stats[status] += 1
+        
+        priority = item.get("priority", "medium")
+        priority_stats[priority] += 1
+        
+        if status == "completed":
+            category_stats[category]["completed"] += 1
+        elif status == "in_progress":
+            category_stats[category]["in_progress"] += 1
+    
+    # Calculate completion percentages
+    for category in category_stats:
+        total = category_stats[category]["total"]
+        completed = category_stats[category]["completed"]
+        category_stats[category]["completion_percentage"] = (completed / total * 100) if total > 0 else 0
+    
+    # Get overdue items
+    current_date = datetime.utcnow()
+    overdue_items = [
+        item for item in items 
+        if item.get("due_date") and 
+        datetime.fromisoformat(item["due_date"].replace("Z", "+00:00") if isinstance(item["due_date"], str) else item["due_date"].isoformat()) < current_date and 
+        item.get("status") != "completed"
+    ]
+    
+    # Get upcoming deadlines (next 7 days)
+    week_from_now = current_date + timedelta(days=7)
+    upcoming_items = [
+        item for item in items 
+        if item.get("due_date") and 
+        current_date <= datetime.fromisoformat(item["due_date"].replace("Z", "+00:00") if isinstance(item["due_date"], str) else item["due_date"].isoformat()) <= week_from_now and 
+        item.get("status") != "completed"
+    ]
+    
+    return {
+        "overview": {
+            "total_items": len(items),
+            "completed_items": status_stats["completed"],
+            "in_progress_items": status_stats["in_progress"],
+            "overdue_items": len(overdue_items),
+            "upcoming_deadlines": len(upcoming_items),
+            "overall_completion": (status_stats["completed"] / len(items) * 100) if len(items) > 0 else 0
+        },
+        "category_breakdown": category_stats,
+        "status_distribution": status_stats,
+        "priority_distribution": priority_stats,
+        "overdue_items": overdue_items[:5],  # Top 5 overdue
+        "upcoming_deadlines": upcoming_items[:5],  # Next 5 deadlines
+        "recent_activity": [
+            {"action": "Completed visa application form", "timestamp": current_date - timedelta(hours=2)},
+            {"action": "Updated moving quotes comparison", "timestamp": current_date - timedelta(hours=6)},
+            {"action": "Added notes to biometric appointment", "timestamp": current_date - timedelta(days=1)},
+            {"action": "Marked birth certificate as completed", "timestamp": current_date - timedelta(days=2)}
+        ]
+    }
+
 # Logistics endpoints
 @api_router.get("/logistics/providers")
 async def get_logistics_providers(service_type: Optional[str] = None):
