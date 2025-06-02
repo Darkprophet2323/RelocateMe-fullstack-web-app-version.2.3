@@ -1131,23 +1131,44 @@ async def get_progress_items(current_user: User = Depends(get_current_user), cat
         initial_items = []
         for item_data in SAMPLE_PROGRESS_ITEMS:
             item = ProgressItem(user_id=current_user.id, **item_data)
-            initial_items.append(item.dict())
+            item_dict = item.dict()
+            # Ensure datetime objects are properly handled
+            for key, value in item_dict.items():
+                if isinstance(value, datetime):
+                    item_dict[key] = value.isoformat()
+            initial_items.append(item_dict)
         
         if initial_items:
             await db.progress_items.insert_many(initial_items)
-            existing_items = initial_items
+            # Fetch the newly created items
+            existing_items = await db.progress_items.find({"user_id": current_user.id}).to_list(length=None)
+    
+    # Convert MongoDB documents to dict and handle ObjectId
+    serialized_items = []
+    for item in existing_items:
+        # Convert MongoDB document to dict and handle ObjectId
+        item_dict = dict(item)
+        if "_id" in item_dict:
+            del item_dict["_id"]  # Remove MongoDB ObjectId
+        
+        # Ensure datetime fields are serializable
+        for key, value in item_dict.items():
+            if isinstance(value, datetime):
+                item_dict[key] = value.isoformat()
+        
+        serialized_items.append(item_dict)
     
     # Filter by category and status if provided
-    filtered_items = existing_items
+    filtered_items = serialized_items
     if category:
         filtered_items = [item for item in filtered_items if item.get("category") == category]
     if status:
         filtered_items = [item for item in filtered_items if item.get("status") == status]
     
     # Calculate statistics
-    total_items = len(existing_items)
-    completed_items = len([item for item in existing_items if item.get("status") == "completed"])
-    in_progress_items = len([item for item in existing_items if item.get("status") == "in_progress"])
+    total_items = len(serialized_items)
+    completed_items = len([item for item in serialized_items if item.get("status") == "completed"])
+    in_progress_items = len([item for item in serialized_items if item.get("status") == "in_progress"])
     
     return {
         "items": filtered_items,
@@ -1157,7 +1178,7 @@ async def get_progress_items(current_user: User = Depends(get_current_user), cat
             "in_progress": in_progress_items,
             "completion_percentage": (completed_items / total_items * 100) if total_items > 0 else 0
         },
-        "categories": list(set([item.get("category") for item in existing_items])),
+        "categories": list(set([item.get("category") for item in serialized_items])),
         "statuses": ["not_started", "in_progress", "completed", "blocked"]
     }
 
