@@ -138,6 +138,73 @@ async def create_default_user():
         print("Default user created successfully")
 
 # API Routes
+class PasswordReset(BaseModel):
+    username: str
+    
+class PasswordResetComplete(BaseModel):
+    username: str
+    new_password: str
+    reset_code: str
+
+# Password reset endpoints
+@api_router.post("/auth/reset-password")
+async def request_password_reset(reset_request: PasswordReset):
+    user = await db.users.find_one({"username": reset_request.username})
+    if not user:
+        # Don't reveal if user exists or not for security
+        return {"message": "If the username exists, a reset code will be provided."}
+    
+    # Generate a simple reset code (in production, this would be sent via email)
+    reset_code = "RESET2025"
+    
+    # Store reset code temporarily (in production, use Redis or temporary storage)
+    await db.password_resets.insert_one({
+        "username": reset_request.username,
+        "reset_code": reset_code,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(hours=1)
+    })
+    
+    return {
+        "message": "Reset code generated successfully.",
+        "reset_code": reset_code,  # In production, this would be sent via email
+        "note": "In production, this code would be sent to your email address."
+    }
+
+@api_router.post("/auth/complete-password-reset")
+async def complete_password_reset(reset_data: PasswordResetComplete):
+    # Verify reset code
+    reset_record = await db.password_resets.find_one({
+        "username": reset_data.username,
+        "reset_code": reset_data.reset_code
+    })
+    
+    if not reset_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset code"
+        )
+    
+    # Check if code is expired
+    if datetime.utcnow() > reset_record["expires_at"]:
+        await db.password_resets.delete_one({"_id": reset_record["_id"]})
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset code has expired"
+        )
+    
+    # Update password
+    hashed_password = get_password_hash(reset_data.new_password)
+    await db.users.update_one(
+        {"username": reset_data.username},
+        {"$set": {"hashed_password": hashed_password}}
+    )
+    
+    # Remove used reset code
+    await db.password_resets.delete_one({"_id": reset_record["_id"]})
+    
+    return {"message": "Password reset successfully"}
+
 @api_router.post("/auth/login", response_model=Token)
 async def login(user_credentials: UserLogin):
     user = await db.users.find_one({"username": user_credentials.username})
