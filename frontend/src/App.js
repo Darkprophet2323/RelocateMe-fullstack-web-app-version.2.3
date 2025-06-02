@@ -15,6 +15,7 @@ const Navigation = ({ user, onLogout, currentPath }) => {
     { path: "/dashboard", name: "Dashboard", icon: "🏠" },
     { path: "/timeline", name: "Timeline", icon: "📅" },
     { path: "/progress", name: "Progress", icon: "📊" },
+    { path: "/analytics", name: "Analytics", icon: "📈" },
     { path: "/housing", name: "Housing", icon: "🏘️" },
     { path: "/employment", name: "Jobs", icon: "💼" },
     { path: "/visa", name: "Visa & Legal", icon: "📋" },
