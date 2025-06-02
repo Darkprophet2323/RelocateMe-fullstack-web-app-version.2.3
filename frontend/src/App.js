@@ -153,26 +153,59 @@ const ComparisonCard = ({ title, phoenixData, peakData, metric }) => (
   </div>
 );
 
-const ChromeExtensionCard = ({ extension }) => (
-  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
-    <h3 className="text-lg font-semibold text-purple-800 mb-2">{extension.extension_name}</h3>
-    <p className="text-gray-600 mb-4">{extension.description}</p>
-    <div className="mb-4">
-      <h4 className="font-medium text-sm text-gray-700 mb-2">Features:</h4>
-      <ul className="text-sm text-gray-600 space-y-1">
-        {extension.features?.map((feature, index) => (
-          <li key={index} className="flex items-center">
-            <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
-            {feature}
-          </li>
-        ))}
-      </ul>
+const ChromeExtensionCard = ({ extension }) => {
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}${extension.download_url}`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `${extension.extension_name.toLowerCase().replace(/\s+/g, '-')}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Download not available yet');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Download failed. Please try again.');
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
+      <h3 className="text-lg font-semibold text-purple-800 mb-2">{extension.extension_name}</h3>
+      <p className="text-gray-600 mb-4">{extension.description}</p>
+      <div className="mb-4">
+        <h4 className="font-medium text-sm text-gray-700 mb-2">Features:</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          {extension.features?.map((feature, index) => (
+            <li key={index} className="flex items-center">
+              <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
+              {feature}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <button 
+        onClick={handleDownload}
+        className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-blue-700 transition duration-300 w-full"
+      >
+        Download Extension v{extension.version}
+      </button>
+      <div className="mt-3 text-xs text-gray-500">
+        💡 Install: Extract and load as unpacked extension in Chrome Developer Mode
+      </div>
     </div>
-    <button className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-blue-700 transition duration-300 w-full">
-      Download Extension v{extension.version}
-    </button>
-  </div>
-);
+  );
+};
 
 const Dashboard = ({ user, onLogout }) => {
   const [dashboardData, setDashboardData] = useState(null);
