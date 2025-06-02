@@ -1427,6 +1427,512 @@ const VisaPage = () => {
   );
 };
 
+// Logistics Page Component
+const LogisticsPage = () => {
+  const [logisticsData, setLogisticsData] = useState(null);
+  const [checklist, setChecklist] = useState(null);
+  const [costCalculator, setCostCalculator] = useState(null);
+  const [selectedServiceType, setSelectedServiceType] = useState("all");
+  const [loadingLogistics, setLoadingLogistics] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [providersRes, checklistRes, calculatorRes] = await Promise.all([
+          axios.get(`${API}/logistics/providers`),
+          axios.get(`${API}/logistics/checklist`),
+          axios.get(`${API}/logistics/cost-calculator`)
+        ]);
+        setLogisticsData(providersRes.data);
+        setChecklist(checklistRes.data);
+        setCostCalculator(calculatorRes.data);
+      } catch (error) {
+        console.error("Error fetching logistics data:", error);
+      } finally {
+        setLoadingLogistics(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredProviders = logisticsData?.providers.filter(provider => 
+    selectedServiceType === "all" || provider.service_type === selectedServiceType
+  ) || [];
+
+  const ProviderCard = ({ provider }) => {
+    const serviceTypeColors = {
+      "full_service": "from-blue-500 to-blue-600",
+      "container": "from-green-500 to-green-600",
+      "air_freight": "from-purple-500 to-purple-600",
+      "storage": "from-orange-500 to-orange-600"
+    };
+
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{provider.company_name}</h3>
+            <div className="flex items-center mb-2">
+              <span className={`px-3 py-1 text-xs rounded-full bg-gradient-to-r ${serviceTypeColors[provider.service_type]} text-white`}>
+                {provider.service_type.replace('_', ' ').toUpperCase()}
+              </span>
+              <span className="ml-3 text-sm text-gray-600">Coverage: {provider.coverage_area}</span>
+            </div>
+            <div className="flex items-center mb-3">
+              <span className="text-green-600 font-semibold mr-4">💰 {provider.price_range}</span>
+              <span className="text-blue-600 font-semibold">⏱️ {provider.transit_time}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center mb-1">
+              <span className="text-yellow-500">⭐</span>
+              <span className="ml-1 font-semibold">{provider.rating}</span>
+              <span className="ml-1 text-sm text-gray-500">({provider.reviews_count})</span>
+            </div>
+          </div>
+        </div>
+        
+        <p className="text-gray-600 mb-4">{provider.description}</p>
+        
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Features:</h4>
+          <div className="grid md:grid-cols-2 gap-2">
+            {provider.features.map((feature, index) => (
+              <div key={index} className="flex items-center text-sm text-gray-600">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                {feature}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="border-t pt-4">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              <div>📞 {provider.contact_info.phone}</div>
+              <div>📧 {provider.contact_info.email}</div>
+            </div>
+            <a
+              href={provider.contact_info.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300 text-sm"
+            >
+              Get Quote →
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loadingLogistics) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading logistics information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div 
+        className="relative bg-cover bg-center h-48 flex items-center justify-center text-white"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1566228015668-4c45dbc4e2f5')"
+        }}
+      >
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2">Moving & Logistics</h1>
+          <p className="text-lg">Professional moving services for your relocation</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Cost Calculator Overview */}
+        {costCalculator && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Moving Cost Overview</h2>
+            <div className="grid md:grid-cols-4 gap-6 mb-6">
+              {Object.entries(costCalculator.base_costs).map(([type, costs]) => (
+                <div key={type} className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2 capitalize">
+                    {type.replace('_', ' ')}
+                  </h3>
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    ${costs.average.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    ${costs.min.toLocaleString()} - ${costs.max.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold text-gray-700 mb-3">Additional Cost Considerations</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                {Object.entries(costCalculator.additional_costs).slice(0, 3).map(([type, info]) => (
+                  <div key={type} className="bg-gray-50 rounded-lg p-3">
+                    <h4 className="font-medium text-gray-800 mb-1 capitalize">
+                      {type.replace('_', ' ')}
+                    </h4>
+                    <p className="text-sm text-gray-600">{info.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Moving Companies */}
+        {logisticsData && (
+          <div className="mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
+                Moving Companies ({filteredProviders.length})
+              </h2>
+              <select
+                value={selectedServiceType}
+                onChange={(e) => setSelectedServiceType(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Service Types</option>
+                {logisticsData.service_types.map(type => (
+                  <option key={type} value={type}>
+                    {type.replace('_', ' ').toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="grid gap-6">
+              {filteredProviders.map((provider, index) => (
+                <ProviderCard key={provider.id || index} provider={provider} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Moving Timeline Checklist */}
+        {checklist && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Moving Timeline Checklist</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(checklist).map(([timeframe, tasks], index) => {
+                const colors = [
+                  "border-red-500 bg-red-50",
+                  "border-orange-500 bg-orange-50",
+                  "border-yellow-500 bg-yellow-50",
+                  "border-green-500 bg-green-50",
+                  "border-blue-500 bg-blue-50",
+                  "border-purple-500 bg-purple-50"
+                ];
+                
+                return (
+                  <div key={timeframe} className={`rounded-xl p-4 border-l-4 ${colors[index % colors.length]}`}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-3 capitalize">
+                      {timeframe.replace('_', ' ')}
+                    </h3>
+                    <ul className="space-y-2">
+                      {tasks.map((task, idx) => (
+                        <li key={idx} className="flex items-start text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            className="mr-2 mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          {task}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Analytics Page Component
+const AnalyticsPage = () => {
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [progressHistory, setProgressHistory] = useState(null);
+  const [costTracking, setCostTracking] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [overviewRes, historyRes, costRes] = await Promise.all([
+          axios.get(`${API}/analytics/overview`),
+          axios.get(`${API}/analytics/progress-history`),
+          axios.get(`${API}/analytics/cost-tracking`)
+        ]);
+        setAnalyticsData(overviewRes.data);
+        setProgressHistory(historyRes.data);
+        setCostTracking(costRes.data);
+      } catch (error) {
+        console.error("Error fetching analytics data:", error);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const ProgressChart = ({ data }) => (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">Progress Over Time</h3>
+      <div className="space-y-4">
+        {data.map((point, index) => (
+          <div key={index} className="flex items-center">
+            <div className="w-16 text-sm text-gray-600">{point.date.split('-')[1]}/{point.date.split('-')[2]}</div>
+            <div className="flex-1 mx-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${point.completion_percentage}%` }}
+                ></div>
+              </div>
+            </div>
+            <div className="w-12 text-sm font-semibold text-gray-900">
+              {point.completion_percentage.toFixed(1)}%
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const CostBreakdownChart = ({ costs }) => (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">Estimated Cost Breakdown</h3>
+      <div className="space-y-3">
+        {Object.entries(costs).map(([category, amount], index) => {
+          const total = Object.values(costs).reduce((sum, val) => sum + val, 0);
+          const percentage = (amount / total) * 100;
+          const colors = [
+            "bg-blue-500", "bg-green-500", "bg-purple-500", 
+            "bg-red-500", "bg-yellow-500", "bg-indigo-500"
+          ];
+          
+          return (
+            <div key={category} className="flex items-center">
+              <div className="w-32 text-sm text-gray-700 capitalize">
+                {category.replace('_', ' ')}
+              </div>
+              <div className="flex-1 mx-4">
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className={`${colors[index % colors.length]} h-3 rounded-full transition-all duration-500`}
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+                </div>
+              </div>
+              <div className="w-20 text-sm font-semibold text-gray-900 text-right">
+                ${amount.toLocaleString()}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  if (loadingAnalytics) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div 
+        className="relative bg-cover bg-center h-48 flex items-center justify-center text-white"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1551288049-bebda4e38f71')"
+        }}
+      >
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2">Relocation Analytics</h1>
+          <p className="text-lg">Track your progress and insights</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Key Metrics */}
+        {analyticsData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Overall Progress</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {analyticsData.user_progress.overall_completion.toFixed(1)}%
+                  </p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    {analyticsData.user_progress.completed_steps}/{analyticsData.user_progress.total_steps} steps
+                  </p>
+                </div>
+                <div className="text-3xl">📊</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Current Phase</p>
+                  <p className="text-lg font-bold text-gray-900">{analyticsData.user_progress.current_phase}</p>
+                  <p className="text-sm text-green-600 mt-1">Active stage</p>
+                </div>
+                <div className="text-3xl">🚀</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Days Active</p>
+                  <p className="text-2xl font-bold text-gray-900">{analyticsData.timeline_insights.days_active}</p>
+                  <p className="text-sm text-purple-600 mt-1">Since you started</p>
+                </div>
+                <div className="text-3xl">📅</div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">On Track</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {analyticsData.timeline_insights.on_track ? "Yes" : "Behind"}
+                  </p>
+                  <p className="text-sm text-orange-600 mt-1">
+                    {analyticsData.timeline_insights.projected_completion}
+                  </p>
+                </div>
+                <div className="text-3xl">
+                  {analyticsData.timeline_insights.on_track ? "✅" : "⚠️"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Charts Section */}
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          {progressHistory && (
+            <ProgressChart data={progressHistory.progress_history} />
+          )}
+          
+          {analyticsData && (
+            <CostBreakdownChart costs={analyticsData.cost_breakdown} />
+          )}
+        </div>
+
+        {/* Category Progress */}
+        {analyticsData && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Progress by Category</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(analyticsData.user_progress.category_breakdown).map(([category, progress], index) => {
+                const colors = [
+                  "from-blue-500 to-blue-600",
+                  "from-green-500 to-green-600", 
+                  "from-purple-500 to-purple-600",
+                  "from-red-500 to-red-600",
+                  "from-yellow-500 to-yellow-600",
+                  "from-indigo-500 to-indigo-600",
+                  "from-pink-500 to-pink-600",
+                  "from-teal-500 to-teal-600",
+                  "from-orange-500 to-orange-600"
+                ];
+                
+                const completionPercentage = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
+                
+                return (
+                  <div key={category} className={`bg-gradient-to-br ${colors[index % colors.length]} text-white p-6 rounded-xl shadow-lg`}>
+                    <h3 className="text-lg font-bold mb-4">{category}</h3>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span>{progress.completed}/{progress.total} completed</span>
+                        <span>{completionPercentage.toFixed(0)}%</span>
+                      </div>
+                      <div className="w-full bg-white bg-opacity-30 rounded-full h-2">
+                        <div
+                          className="bg-white h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${completionPercentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Deadlines & Popular Resources */}
+        {analyticsData && (
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Upcoming Deadlines</h3>
+              <div className="space-y-4">
+                {analyticsData.upcoming_deadlines.map((deadline, index) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-900">{deadline.task}</div>
+                      <div className="text-sm text-gray-600">{deadline.days_left} days left</div>
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm ${
+                      deadline.days_left < 30 ? 'bg-red-100 text-red-800' :
+                      deadline.days_left < 60 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {deadline.days_left < 30 ? 'Urgent' : 
+                       deadline.days_left < 60 ? 'Soon' : 'Planned'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Popular Resources</h3>
+              <div className="space-y-4">
+                {analyticsData.popular_resources.map((resource, index) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <div className="font-medium text-gray-900">{resource.name}</div>
+                      <div className="text-sm text-gray-600">{resource.category}</div>
+                    </div>
+                    <div className="text-blue-600 font-semibold">
+                      {resource.clicks} clicks
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ProgressPage = () => (
   <div className="min-h-screen bg-gray-50 p-8">
     <h1 className="text-3xl font-bold mb-4">Progress Tracking</h1>
