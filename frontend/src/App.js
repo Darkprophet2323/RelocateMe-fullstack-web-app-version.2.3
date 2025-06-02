@@ -1424,6 +1424,7 @@ const VisaPage = () => {
       </div>
     </div>
   );
+};
 
 const ProgressPage = () => (
   <div className="min-h-screen bg-gray-50 p-8">
