@@ -1523,6 +1523,3 @@ const AuthenticatedApp = ({ user, onLogout }) => {
   );
 };
 
-};
-
-export default App;
