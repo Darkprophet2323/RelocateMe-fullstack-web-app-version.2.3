@@ -220,7 +220,168 @@ SAMPLE_JOBS = [
     }
 ]
 
-# Visa requirements data
+# Analytics and Logistics models
+class LogisticsProvider(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    company_name: str
+    service_type: str  # "full_service", "container", "air_freight", "storage"
+    price_range: str
+    transit_time: str
+    coverage_area: str
+    description: str
+    features: List[str]
+    contact_info: Dict[str, str]
+    rating: float
+    reviews_count: int
+
+class AnalyticsData(BaseModel):
+    user_progress: Dict[str, Any]
+    cost_breakdown: Dict[str, float]
+    timeline_analytics: Dict[str, Any]
+    popular_resources: List[Dict[str, Any]]
+    user_insights: Dict[str, Any]
+
+# Logistics providers data
+LOGISTICS_PROVIDERS = [
+    {
+        "company_name": "Crown Relocations",
+        "service_type": "full_service",
+        "price_range": "$8,000 - $15,000",
+        "transit_time": "4-8 weeks",
+        "coverage_area": "Worldwide",
+        "description": "Premium international moving service with door-to-door delivery, customs clearance, and storage options.",
+        "features": [
+            "Professional packing service",
+            "Customs clearance included",
+            "Insurance coverage up to $60,000",
+            "Storage facilities available",
+            "Pet relocation services",
+            "Vehicle shipping"
+        ],
+        "contact_info": {
+            "phone": "+1-800-CROWN-US",
+            "email": "info@crownrelo.com",
+            "website": "https://www.crownrelo.com"
+        },
+        "rating": 4.8,
+        "reviews_count": 2847
+    },
+    {
+        "company_name": "Allied International",
+        "service_type": "full_service",
+        "price_range": "$6,500 - $12,000",
+        "transit_time": "3-6 weeks",
+        "coverage_area": "North America to Europe",
+        "description": "Comprehensive international moving with specialized UK services and local partnerships.",
+        "features": [
+            "UK customs expertise",
+            "Local delivery partners",
+            "Temporary storage",
+            "Electronics handling",
+            "Piano moving specialists",
+            "Real-time tracking"
+        ],
+        "contact_info": {
+            "phone": "+1-800-470-6683",
+            "email": "international@alliedvan.com",
+            "website": "https://www.allied.com"
+        },
+        "rating": 4.6,
+        "reviews_count": 1923
+    },
+    {
+        "company_name": "Ship Smart",
+        "service_type": "container",
+        "price_range": "$3,500 - $7,500",
+        "transit_time": "2-4 weeks",
+        "coverage_area": "US to UK",
+        "description": "Cost-effective container shipping with flexible pickup and delivery options.",
+        "features": [
+            "Shared container options",
+            "Professional loading",
+            "Basic insurance included",
+            "Flexible pickup dates",
+            "Container tracking",
+            "Competitive pricing"
+        ],
+        "contact_info": {
+            "phone": "+1-800-SHIP-SMART",
+            "email": "quotes@shipsmart.com",
+            "website": "https://www.shipsmart.com"
+        },
+        "rating": 4.3,
+        "reviews_count": 1156
+    },
+    {
+        "company_name": "Seven Seas Worldwide",
+        "service_type": "container",
+        "price_range": "$2,800 - $6,200",
+        "transit_time": "4-6 weeks",
+        "coverage_area": "Worldwide",
+        "description": "International shipping specialists with self-pack and full-service options.",
+        "features": [
+            "Self-pack containers",
+            "Free storage period",
+            "Online quote system",
+            "Multiple container sizes",
+            "Customs documentation",
+            "Local partnerships"
+        ],
+        "contact_info": {
+            "phone": "+44-161-772-3434",
+            "email": "info@sevenseasworldwide.com",
+            "website": "https://www.sevenseasworldwide.com"
+        },
+        "rating": 4.4,
+        "reviews_count": 3214
+    },
+    {
+        "company_name": "FedEx International",
+        "service_type": "air_freight",
+        "price_range": "$2,000 - $8,000",
+        "transit_time": "5-10 days",
+        "coverage_area": "Worldwide",
+        "description": "Fast air freight service for urgent or valuable items with excellent tracking.",
+        "features": [
+            "Express delivery options",
+            "Superior tracking system",
+            "High-value item specialist",
+            "Customs clearance",
+            "Door-to-door service",
+            "Insurance options"
+        ],
+        "contact_info": {
+            "phone": "+1-800-GO-FEDEX",
+            "email": "international@fedex.com",
+            "website": "https://www.fedex.com"
+        },
+        "rating": 4.7,
+        "reviews_count": 5632
+    },
+    {
+        "company_name": "BigSteelBox",
+        "service_type": "storage",
+        "price_range": "$150 - $400/month",
+        "transit_time": "On-demand",
+        "coverage_area": "North America",
+        "description": "Portable storage containers for flexible moving and storage solutions.",
+        "features": [
+            "Weather-resistant containers",
+            "Ground-level loading",
+            "Short and long-term storage",
+            "Insurance available",
+            "Flexible scheduling",
+            "No fuel surcharges"
+        ],
+        "contact_info": {
+            "phone": "+1-855-594-4444",
+            "email": "info@bigsteelbox.com",
+            "website": "https://www.bigsteelbox.com"
+        },
+        "rating": 4.5,
+        "reviews_count": 892
+    }
+]
 VISA_REQUIREMENTS = [
     {
         "visa_type": "Skilled Worker Visa",
