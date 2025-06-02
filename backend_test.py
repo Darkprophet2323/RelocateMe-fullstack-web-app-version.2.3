@@ -191,6 +191,75 @@ class RelocateMeAPITester:
             auth_required=True
         )
         return success
+    
+    def test_get_job_listings(self, category=None, job_type=None):
+        """Test getting job listings with optional filters"""
+        endpoint = "jobs/listings"
+        if category or job_type:
+            params = []
+            if category:
+                params.append(f"category={category}")
+            if job_type:
+                params.append(f"job_type={job_type}")
+            endpoint += f"?{'&'.join(params)}"
+        
+        success, response = self.run_test(
+            f"Get Job Listings{' (Filtered)' if category or job_type else ''}",
+            "GET",
+            endpoint,
+            200
+        )
+        return success, response
+    
+    def test_get_featured_jobs(self):
+        """Test getting featured jobs"""
+        success, response = self.run_test(
+            "Get Featured Jobs",
+            "GET",
+            "jobs/featured",
+            200
+        )
+        return success, response
+    
+    def test_get_job_categories(self):
+        """Test getting job categories"""
+        success, response = self.run_test(
+            "Get Job Categories",
+            "GET",
+            "jobs/categories",
+            200
+        )
+        return success, response
+    
+    def test_get_visa_requirements(self):
+        """Test getting visa requirements"""
+        success, response = self.run_test(
+            "Get Visa Requirements",
+            "GET",
+            "visa/requirements",
+            200
+        )
+        return success, response
+    
+    def test_get_visa_requirement_details(self, visa_type):
+        """Test getting specific visa requirement details"""
+        success, response = self.run_test(
+            f"Get Visa Details for {visa_type}",
+            "GET",
+            f"visa/requirements/{visa_type}",
+            200
+        )
+        return success, response
+    
+    def test_get_visa_checklist(self):
+        """Test getting visa checklist"""
+        success, response = self.run_test(
+            "Get Visa Checklist",
+            "GET",
+            "visa/checklist",
+            200
+        )
+        return success, response
 
     def test_get_chrome_extensions(self):
         """Test getting Chrome extensions"""
@@ -232,6 +301,38 @@ class RelocateMeAPITester:
             auth_required=True
         )
         return success
+    
+    def test_get_timeline_full(self):
+        """Test getting full timeline"""
+        success, response = self.run_test(
+            "Get Full Timeline",
+            "GET",
+            "timeline/full",
+            200,
+            auth_required=True
+        )
+        return success, response
+    
+    def test_get_timeline_by_category(self):
+        """Test getting timeline by category"""
+        success, response = self.run_test(
+            "Get Timeline By Category",
+            "GET",
+            "timeline/by-category",
+            200,
+            auth_required=True
+        )
+        return success, response
+    
+    def test_get_resources(self):
+        """Test getting resources"""
+        success, response = self.run_test(
+            "Get Resources",
+            "GET",
+            "resources/all",
+            200
+        )
+        return success, response
 
     def print_summary(self):
         """Print test summary"""
@@ -301,9 +402,48 @@ def main():
     tester.test_get_phoenix_housing()
     tester.test_get_peak_district_housing()
     
-    # Test job opportunities endpoint
+    # Test job data endpoints
     print("\n=== Testing Job Data ===")
     tester.test_get_job_opportunities()
+    
+    # Test new job listings endpoints
+    job_listings_success, job_listings = tester.test_get_job_listings()
+    if job_listings_success:
+        print(f"✅ Found {job_listings.get('total', 0)} job listings")
+        
+        # Test job filtering
+        if job_listings.get('categories'):
+            category = job_listings['categories'][0]
+            tester.test_get_job_listings(category=category)
+            
+        if job_listings.get('job_types'):
+            job_type = job_listings['job_types'][0]
+            tester.test_get_job_listings(job_type=job_type)
+    
+    tester.test_get_featured_jobs()
+    tester.test_get_job_categories()
+    
+    # Test visa data endpoints
+    print("\n=== Testing Visa Data ===")
+    visa_success, visa_data = tester.test_get_visa_requirements()
+    if visa_success and 'visa_types' in visa_data:
+        print(f"✅ Found {len(visa_data['visa_types'])} visa types")
+        
+        # Test specific visa type details
+        if visa_data['visa_types']:
+            visa_type = visa_data['visa_types'][0]['visa_type'].lower().replace(" ", "-")
+            tester.test_get_visa_requirement_details(visa_type)
+    
+    tester.test_get_visa_checklist()
+    
+    # Test timeline endpoints
+    print("\n=== Testing Timeline Data ===")
+    tester.test_get_timeline_full()
+    tester.test_get_timeline_by_category()
+    
+    # Test resources endpoint
+    print("\n=== Testing Resources ===")
+    tester.test_get_resources()
     
     # Test Chrome extensions endpoints
     print("\n=== Testing Chrome Extensions ===")
