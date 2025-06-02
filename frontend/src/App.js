@@ -851,6 +851,98 @@ const ResourcesPage = () => {
   );
 };
 
+// Resources Page Component
+const ResourcesPage = () => {
+  const [resources, setResources] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await axios.get(`${API}/resources/all`);
+        setResources(response.data);
+      } catch (error) {
+        console.error("Error fetching resources:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResources();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading resources...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const ResourceCard = ({ resource, color }) => (
+    <a
+      href={resource.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`block bg-gradient-to-br ${color} text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105`}
+    >
+      <h3 className="text-lg font-semibold mb-2">{resource.name}</h3>
+      <p className="text-sm opacity-90">{resource.description}</p>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-xs opacity-75">Click to visit</span>
+        <span className="text-lg">🔗</span>
+      </div>
+    </a>
+  );
+
+  const colors = [
+    "from-blue-500 to-blue-600",
+    "from-green-500 to-green-600", 
+    "from-purple-500 to-purple-600",
+    "from-red-500 to-red-600",
+    "from-yellow-500 to-yellow-600",
+    "from-indigo-500 to-indigo-600"
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div 
+        className="relative bg-cover bg-center h-48 flex items-center justify-center text-white"
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1588152850700-c82ecb8ba9b1')"
+        }}
+      >
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-2">Essential Resources</h1>
+          <p className="text-lg">Everything you need for your relocation journey</p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {resources && Object.entries(resources).map(([category, items], categoryIndex) => (
+          <div key={category} className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6 capitalize">
+              {category.replace('_', ' & ')}
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {items.map((resource, index) => (
+                <ResourceCard 
+                  key={index} 
+                  resource={resource} 
+                  color={colors[(categoryIndex * 3 + index) % colors.length]}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Housing Page Component
 const HousingPage = () => {
   const [housingData, setHousingData] = useState(null);
