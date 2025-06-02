@@ -456,6 +456,35 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* Motivational Section */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-8 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold mb-4">🌟 Your Journey Awaits</h2>
+              <p className="text-xl mb-6">"The biggest adventure you can take is to live the life of your dreams."</p>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl mb-2">🎯</div>
+                  <p className="font-semibold">Plan Smart</p>
+                  <p className="text-sm opacity-90">Data-driven decisions</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl mb-2">💪</div>
+                  <p className="font-semibold">Stay Motivated</p>
+                  <p className="text-sm opacity-90">Progress tracking</p>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl mb-2">🏆</div>
+                  <p className="font-semibold">Achieve Dreams</p>
+                  <p className="text-sm opacity-90">New life awaits</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Chrome Extensions */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Chrome Extensions & Tools</h2>
