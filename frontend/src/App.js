@@ -735,8 +735,6 @@ function App() {
   );
 };
 
-export default App;
-
 const AuthenticatedApp = ({ user, onLogout }) => {
   const location = useLocation();
 
