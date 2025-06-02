@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Relocate Me Helper",
+  "version": "1.0.0",
+  "description": "Quick access to relocation data and bookmarking tools for your Phoenix to Peak District move",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "bookmarks"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Relocate Me Helper"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.rightmove.co.uk/*", "*://*.zoopla.co.uk/*", "*://*.numbeo.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

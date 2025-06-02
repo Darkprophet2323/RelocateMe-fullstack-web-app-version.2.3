@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    .header {
+      text-align: center;
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
+    .quick-link {
+      display: block;
+      padding: 10px;
+      margin: 5px 0;
+      background: #f3f4f6;
+      text-decoration: none;
+      color: #374151;
+      border-radius: 5px;
+      border: 1px solid #d1d5db;
+    }
+    .quick-link:hover {
+      background: #e5e7eb;
+    }
+    .bookmark-btn {
+      background: #10b981;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      margin: 5px 0;
+    }
+    .bookmark-btn:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h3>🏔️ Relocate Me Helper</h3>
+  </div>
+  
+  <div id="content">
+    <a href="#" class="quick-link" id="dashboard-link">📊 Open Dashboard</a>
+    <a href="#" class="quick-link" id="comparison-link">🔄 Compare Locations</a>
+    <a href="#" class="quick-link" id="housing-link">🏠 Housing Search</a>
+    
+    <button class="bookmark-btn" id="bookmark-page">📌 Bookmark This Page</button>
+    <button class="bookmark-btn" id="save-property">💾 Save Property Data</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
