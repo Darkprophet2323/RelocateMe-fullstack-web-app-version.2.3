@@ -2023,7 +2023,8 @@ const AuthenticatedApp = ({ user, onLogout }) => {
         <Route path="/employment" element={<EmploymentPage />} />
         <Route path="/visa" element={<VisaPage />} />
         <Route path="/progress" element={<ProgressPage />} />
-        <Route path="/logistics" element={<div className="p-8">Logistics page coming soon!</div>} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/logistics" element={<LogisticsPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
