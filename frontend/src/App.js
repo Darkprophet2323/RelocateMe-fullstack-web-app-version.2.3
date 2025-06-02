@@ -733,6 +733,9 @@ function App() {
       </BrowserRouter>
     </div>
   );
+};
+
+export default App;
 }
 
 const AuthenticatedApp = ({ user, onLogout }) => {
