@@ -220,7 +220,210 @@ SAMPLE_JOBS = [
     }
 ]
 
-# Analytics and Logistics models
+# Progress tracking models
+class ProgressItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    category: str
+    title: str
+    description: str
+    status: str = "not_started"  # "not_started", "in_progress", "completed", "blocked"
+    priority: str = "medium"  # "low", "medium", "high", "urgent"
+    due_date: Optional[datetime] = None
+    completed_date: Optional[datetime] = None
+    notes: Optional[str] = None
+    attachments: List[str] = Field(default_factory=list)
+    subtasks: List[Dict[str, Any]] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ProgressUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[datetime] = None
+
+# Sample progress items for a real relocation scenario
+SAMPLE_PROGRESS_ITEMS = [
+    {
+        "category": "Documentation",
+        "title": "Gather Birth Certificate",
+        "description": "Obtain certified copy of birth certificate for visa application",
+        "status": "completed",
+        "priority": "high",
+        "due_date": datetime.now() - timedelta(days=10),
+        "completed_date": datetime.now() - timedelta(days=12),
+        "notes": "Received certified copy from state office. Cost $25.",
+        "subtasks": [
+            {"task": "Request birth certificate online", "completed": True},
+            {"task": "Pay processing fee", "completed": True},
+            {"task": "Receive by mail", "completed": True}
+        ]
+    },
+    {
+        "category": "Documentation",
+        "title": "Apostille Documents",
+        "description": "Get birth certificate and education documents apostilled for UK recognition",
+        "status": "in_progress",
+        "priority": "high",
+        "due_date": datetime.now() + timedelta(days=5),
+        "notes": "Submitted to Secretary of State office. Processing time 2-3 weeks.",
+        "subtasks": [
+            {"task": "Prepare document copies", "completed": True},
+            {"task": "Submit to state office", "completed": True},
+            {"task": "Pay apostille fees", "completed": True},
+            {"task": "Await processing", "completed": False}
+        ]
+    },
+    {
+        "category": "Visa Application",
+        "title": "Complete Visa Application Form",
+        "description": "Fill out UK Skilled Worker visa application online",
+        "status": "completed",
+        "priority": "high",
+        "due_date": datetime.now() - timedelta(days=5),
+        "completed_date": datetime.now() - timedelta(days=7),
+        "notes": "Application submitted successfully. Reference number: GWF1234567890",
+        "subtasks": [
+            {"task": "Create UK government account", "completed": True},
+            {"task": "Fill application form", "completed": True},
+            {"task": "Upload documents", "completed": True},
+            {"task": "Pay application fee", "completed": True}
+        ]
+    },
+    {
+        "category": "Visa Application",
+        "title": "Biometric Appointment",
+        "description": "Attend biometric appointment at visa application center",
+        "status": "in_progress",
+        "priority": "high",
+        "due_date": datetime.now() + timedelta(days=3),
+        "notes": "Appointment scheduled for Jan 15th at 2:30 PM in Chicago.",
+        "subtasks": [
+            {"task": "Book appointment online", "completed": True},
+            {"task": "Prepare required documents", "completed": True},
+            {"task": "Attend appointment", "completed": False}
+        ]
+    },
+    {
+        "category": "Employment",
+        "title": "Job Search in Peak District",
+        "description": "Apply for tourism and outdoor recreation jobs in Peak District area",
+        "status": "in_progress",
+        "priority": "high",
+        "due_date": datetime.now() + timedelta(days=30),
+        "notes": "Applied to 5 positions. 2 responses received, 1 interview scheduled.",
+        "subtasks": [
+            {"task": "Update CV for UK format", "completed": True},
+            {"task": "Research job opportunities", "completed": True},
+            {"task": "Submit applications", "completed": False},
+            {"task": "Prepare for interviews", "completed": False}
+        ]
+    },
+    {
+        "category": "Employment",
+        "title": "Certificate of Sponsorship",
+        "description": "Obtain Certificate of Sponsorship from UK employer",
+        "status": "not_started",
+        "priority": "high",
+        "due_date": datetime.now() + timedelta(days=45),
+        "notes": "Waiting for job offer confirmation before requesting CoS.",
+        "subtasks": [
+            {"task": "Secure job offer", "completed": False},
+            {"task": "Request CoS from employer", "completed": False},
+            {"task": "Receive CoS documentation", "completed": False}
+        ]
+    },
+    {
+        "category": "Housing",
+        "title": "Research Peak District Areas",
+        "description": "Research different towns and villages in Peak District for living",
+        "status": "completed",
+        "priority": "medium",
+        "due_date": datetime.now() - timedelta(days=15),
+        "completed_date": datetime.now() - timedelta(days=18),
+        "notes": "Narrowed down to Bakewell, Buxton, and Hathersage based on amenities and transport links.",
+        "subtasks": [
+            {"task": "Research online resources", "completed": True},
+            {"task": "Join Facebook groups", "completed": True},
+            {"task": "Create comparison matrix", "completed": True}
+        ]
+    },
+    {
+        "category": "Housing",
+        "title": "Virtual Property Viewings",
+        "description": "Arrange virtual viewings of rental properties",
+        "status": "in_progress",
+        "priority": "medium",
+        "due_date": datetime.now() + timedelta(days=20),
+        "notes": "Scheduled 3 virtual viewings this week. Found 2 promising options.",
+        "subtasks": [
+            {"task": "Contact estate agents", "completed": True},
+            {"task": "Schedule virtual tours", "completed": True},
+            {"task": "Prepare viewing questions", "completed": True},
+            {"task": "Compare properties", "completed": False}
+        ]
+    },
+    {
+        "category": "Financial",
+        "title": "Open UK Bank Account",
+        "description": "Research and apply for UK bank account before arrival",
+        "status": "not_started",
+        "priority": "medium",
+        "due_date": datetime.now() + timedelta(days=60),
+        "notes": "Researching Monzo, Starling, and HSBC options for expats.",
+        "subtasks": [
+            {"task": "Compare bank options", "completed": False},
+            {"task": "Prepare required documents", "completed": False},
+            {"task": "Submit application", "completed": False}
+        ]
+    },
+    {
+        "category": "Financial",
+        "title": "Currency Exchange Setup",
+        "description": "Set up Wise account for international money transfers",
+        "status": "completed",
+        "priority": "low",
+        "due_date": datetime.now() - timedelta(days=20),
+        "completed_date": datetime.now() - timedelta(days=25),
+        "notes": "Account verified. Test transfer of $100 successful. Rates are competitive.",
+        "subtasks": [
+            {"task": "Create Wise account", "completed": True},
+            {"task": "Verify identity", "completed": True},
+            {"task": "Test small transfer", "completed": True}
+        ]
+    },
+    {
+        "category": "Moving",
+        "title": "Get Moving Quotes",
+        "description": "Obtain quotes from international moving companies",
+        "status": "in_progress",
+        "priority": "medium",
+        "due_date": datetime.now() + timedelta(days=14),
+        "notes": "Received 3 quotes so far. Crown Relocations: $12k, Ship Smart: $6k, Seven Seas: $4.5k",
+        "subtasks": [
+            {"task": "Contact 5 moving companies", "completed": True},
+            {"task": "Provide inventory details", "completed": True},
+            {"task": "Compare quotes", "completed": False},
+            {"task": "Book moving service", "completed": False}
+        ]
+    },
+    {
+        "category": "Moving",
+        "title": "Declutter and Sort Items",
+        "description": "Decide what to ship, sell, donate, or store",
+        "status": "in_progress",
+        "priority": "medium",
+        "due_date": datetime.now() + timedelta(days=45),
+        "notes": "Started with closet. Donated 2 bags of clothes. Still need to sort garage and basement.",
+        "subtasks": [
+            {"task": "Sort bedroom items", "completed": True},
+            {"task": "Sort kitchen items", "completed": False},
+            {"task": "Sort garage/storage", "completed": False},
+            {"task": "Arrange donations/sales", "completed": False}
+        ]
+    }
+]
 class LogisticsProvider(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     company_name: str
