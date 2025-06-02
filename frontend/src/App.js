@@ -349,6 +349,54 @@ const Dashboard = ({ user, onLogout }) => {
         {comparisonData && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Phoenix vs Peak District Comparison</h2>
+            
+            {/* Visual Location Comparison */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="relative rounded-xl overflow-hidden shadow-lg">
+                <div 
+                  className="h-64 bg-cover bg-center"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1470164971321-eb5ac2c35f2e')"
+                  }}
+                >
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <h3 className="text-2xl font-bold">Phoenix, Arizona</h3>
+                    <p className="text-lg">Desert Paradise • 299 Sunny Days</p>
+                    <div className="flex items-center mt-2">
+                      <span className="bg-orange-500 text-white px-2 py-1 rounded text-sm mr-2">
+                        🌡️ 75°F Avg
+                      </span>
+                      <span className="bg-blue-500 text-white px-2 py-1 rounded text-sm">
+                        💰 $62k Income
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative rounded-xl overflow-hidden shadow-lg">
+                <div 
+                  className="h-64 bg-cover bg-center"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1565784900709-3bd5bb123a1e')"
+                  }}
+                >
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <h3 className="text-2xl font-bold">Peak District, UK</h3>
+                    <p className="text-lg">Natural Beauty • Rolling Hills</p>
+                    <div className="flex items-center mt-2">
+                      <span className="bg-green-500 text-white px-2 py-1 rounded text-sm mr-2">
+                        🌡️ 48°F Avg
+                      </span>
+                      <span className="bg-purple-500 text-white px-2 py-1 rounded text-sm">
+                        💰 £28k Income
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <ComparisonCard
                 title="Cost of Living Index"
@@ -368,6 +416,29 @@ const Dashboard = ({ user, onLogout }) => {
                 peakData={`${comparisonData.to_location.weather_info.avg_temp_f}°F`}
                 metric="Cooler climate in Peak District"
               />
+            </div>
+
+            {/* Climate Change Visualization */}
+            <div className="mt-8 bg-gradient-to-br from-blue-50 to-green-50 rounded-xl p-6 border border-blue-200">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">🌤️ Climate Transition Overview</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="text-center">
+                  <h4 className="font-medium text-orange-700 mb-2">From Phoenix Desert</h4>
+                  <div className="bg-orange-100 rounded-lg p-4">
+                    <div className="text-2xl mb-2">🌵</div>
+                    <p className="text-sm text-orange-800">Hot & Dry</p>
+                    <p className="text-xs text-orange-600">299 sunny days/year</p>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <h4 className="font-medium text-green-700 mb-2">To Peak District</h4>
+                  <div className="bg-green-100 rounded-lg p-4">
+                    <div className="text-2xl mb-2">🏔️</div>
+                    <p className="text-sm text-green-800">Cool & Lush</p>
+                    <p className="text-xs text-green-600">120 sunny days/year</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Relocation Tips */}
