@@ -301,7 +301,7 @@ async def get_chrome_extensions():
         {
             "id": str(uuid.uuid4()),
             "extension_name": "Relocate Me Helper",
-            "download_url": "/api/download/relocate-helper.crx",
+            "download_url": "/api/download/relocate-helper.zip",
             "version": "1.0.0",
             "description": "Quick access to relocation data and bookmarking tools",
             "features": ["Bookmark locations", "Compare costs", "Save searches"]
@@ -309,13 +309,48 @@ async def get_chrome_extensions():
         {
             "id": str(uuid.uuid4()),
             "extension_name": "Property Finder",
-            "download_url": "/api/download/property-finder.crx",
+            "download_url": "/api/download/property-finder.zip",
             "version": "1.2.1",
             "description": "Find and compare properties across different locations",
             "features": ["Property search", "Price comparison", "Market analysis"]
         }
     ]
     return extensions
+
+@api_router.get("/download/relocate-helper.zip")
+async def download_relocate_helper():
+    from fastapi.responses import FileResponse
+    import zipfile
+    import tempfile
+    import os
+    from pathlib import Path
+    
+    # Create a temporary zip file
+    temp_dir = tempfile.mkdtemp()
+    zip_path = os.path.join(temp_dir, "relocate-helper.zip")
+    
+    extension_path = Path("/app/frontend/public/extensions/relocate-helper")
+    
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path in extension_path.rglob("*"):
+            if file_path.is_file():
+                arcname = file_path.relative_to(extension_path)
+                zipf.write(file_path, arcname)
+    
+    return FileResponse(
+        zip_path,
+        media_type="application/zip",
+        filename="relocate-helper.zip",
+        headers={"Content-Disposition": "attachment; filename=relocate-helper.zip"}
+    )
+
+@api_router.get("/download/property-finder.zip")
+async def download_property_finder():
+    from fastapi.responses import JSONResponse
+    return JSONResponse({
+        "message": "Property Finder extension coming soon!",
+        "status": "development"
+    })
 
 @api_router.get("/dashboard/overview")
 async def get_dashboard_overview(current_user: User = Depends(get_current_user)):
