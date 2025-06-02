@@ -744,11 +744,11 @@ const AuthenticatedApp = ({ user, onLogout }) => {
       <Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/timeline" element={<TimelinePage />} />
-        <Route path="/progress" element={<div className="p-8">Progress page coming soon!</div>} />
-        <Route path="/housing" element={<div className="p-8">Housing page coming soon!</div>} />
-        <Route path="/employment" element={<div className="p-8">Employment page coming soon!</div>} />
-        <Route path="/visa" element={<div className="p-8">Visa page coming soon!</div>} />
-        <Route path="/resources" element={<div className="p-8">Resources page coming soon!</div>} />
+        <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/housing" element={<HousingPage />} />
+        <Route path="/employment" element={<EmploymentPage />} />
+        <Route path="/visa" element={<VisaPage />} />
+        <Route path="/progress" element={<ProgressPage />} />
         <Route path="/logistics" element={<div className="p-8">Logistics page coming soon!</div>} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
